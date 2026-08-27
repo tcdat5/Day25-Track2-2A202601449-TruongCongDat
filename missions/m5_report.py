@@ -52,7 +52,40 @@ def run(verbose: bool = True) -> dict:
         "best_region": min(sustainability.REGION_CARBON, key=sustainability.REGION_CARBON.get),
     }
 
-    md = report.build_report(baseline, optimized, levers, sustainability=sust)
+    md = report.build_report(
+        baseline, optimized, levers, sustainability=sust,
+        extensions={
+            "cache": {
+                "avg_reads": r2["cache_avg_reads"],
+                "write_cost_per_m": m2_inference_levers.CACHE_WRITE_COST_PER_M,
+                "enabled": r2["cache_enabled"],
+                "read_discount": 0.10,
+                "read_savings": r2["cache_avg_reads"] * 0.90,
+            },
+            "reasoning": {
+                "traffic_share_pct": r2["reasoning_traffic_share_pct"],
+                "request_share_pct": r2["reasoning_request_share_pct"],
+                "cost_share_pct": r2["reasoning_cost_share_pct"],
+                "cap_savings_daily": r2["reasoning_cap_savings_daily"],
+                "cap_wh_savings_daily": r2["reasoning_cap_wh_savings_daily"],
+            },
+            "inference": {
+                "baseline_per_m": r2["baseline_per_m"],
+                "optimized_per_m": r2["optimized_per_m"],
+                "savings_pct": r2["savings_pct"],
+            },
+        },
+        analysis={
+            "baseline_per_m": r2["baseline_per_m"],
+            "optimized_per_m": r2["optimized_per_m"],
+            "inference_savings_pct": r2["savings_pct"],
+            "largest_lever": max(levers, key=levers.get),
+            "largest_savings": max(levers.values()),
+            "lie_ids": [item["gpu_id"] for item in r1["lies"]],
+            "rightsize_savings": rightsize_savings,
+            "idle_savings": idle_savings,
+        },
+    )
     out_md = os.path.join(ROOT, "outputs", "report.md")
     os.makedirs(os.path.dirname(out_md), exist_ok=True)
     with open(out_md, "w") as f:
